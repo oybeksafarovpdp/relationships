@@ -5,14 +5,27 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.*;
+import uz.pdp.appjparelationships.entity.Address;
+import uz.pdp.appjparelationships.entity.Group;
 import uz.pdp.appjparelationships.entity.Student;
+import uz.pdp.appjparelationships.payload.StudentDto;
+import uz.pdp.appjparelationships.repository.AddressRepository;
+import uz.pdp.appjparelationships.repository.GroupRepository;
 import uz.pdp.appjparelationships.repository.StudentRepository;
+
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/student")
 public class StudentController {
     @Autowired
     StudentRepository studentRepository;
+
+    @Autowired
+    AddressRepository addressRepository;
+
+    @Autowired
+    GroupRepository groupRepository;
 
     //1. VAZIRLIK
     @GetMapping("/forMinistry")
@@ -59,7 +72,52 @@ public class StudentController {
         return studentPage;
     }
 
-/*    @PostMapping("/{id}")
-    public String addStudent()*/
+    @PostMapping()
+    public String addStudent(@RequestBody StudentDto studentDto) {
+        Optional<Address> byId = addressRepository.findById(studentDto.getAddress_id());
+        if (!byId.isPresent()) return "Bunday Address yo'q!";
+        Optional<Group> byId1 = groupRepository.findById(studentDto.getGroup_id());
+        if (!byId1.isPresent()) return "Bunday guruh yo'q";
+        Group group = byId1.get();
+        Address address = byId.get();
+        Student student = new Student();
+        student.setAddress(address);
+        student.setGroup(group);
+        student.setFirstName(studentDto.getFirstName());
+        student.setLastName(studentDto.getLastName());
+        studentRepository.save(student);
+        return "Student qo'shildi";
+    }
+
+    @PutMapping("/{id}")
+    public String updateStudent(@PathVariable Integer id, @RequestBody StudentDto studentDto) {
+        Optional<Student> byId2 = studentRepository.findById(id);
+        if (!byId2.isPresent()) return "Bunday student topilmadi!";
+        Optional<Address> byId = addressRepository.findById(studentDto.getAddress_id());
+        if (!byId.isPresent()) return "Bunday address yo'q";
+        Optional<Group> byId1 = groupRepository.findById(studentDto.getGroup_id());
+        if (!byId1.isPresent()) return "Bunday guruh yo'q";
+
+        Student student = byId2.get();
+        student.setFirstName(studentDto.getFirstName());
+        student.setLastName(studentDto.getLastName());
+        student.setAddress(byId.get());
+        student.setGroup(byId1.get());
+        studentRepository.save(student);
+        return "Student o'zgartirildi!!";
+    }
+
+    @DeleteMapping("/{id}")
+    public String deleteStudent(@PathVariable Integer id) {
+        Optional<Student> byId = studentRepository.findById(id);
+        if (byId.isPresent()) {
+            studentRepository.deleteById(id);
+            return "Student topildi va o'chirildi!!!";
+        } else {
+            return "Student topilmadi!!!";
+        }
+    }
+
+
 
 }
